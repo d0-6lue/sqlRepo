@@ -223,3 +223,65 @@ WHERE (JOB_CODE, SALARY) = ANY (
         FROM 절에 서브 쿼리를 제시하고, 서브 쿼리를 수행한 결과를 테이블 대신 사용한다.
 */
 
+--부서별 평균급여가 높은 3개 부서의 부서코드, 평균 급여 조회
+
+SELECT ROWNUM, "부서코드", "평균급여"
+FROM (  SELECT  NVL(DEPT_CODE, '부서없음') AS "부서코드",
+                TRUNC(AVG(NVL(SALARY, 0))) AS "평균급여"
+        FROM EMPLOYEE
+        GROUP BY DEPT_CODE
+        ORDER BY "평균급여" DESC
+      )
+WHERE ROWNUM <= 3
+;
+-- 부서별 평균급여가 '높은 3개 부서 '외의' ' 부서코드, 평균 급여 조회
+-- SQL 실행 순때문에 WHERE절에서 ROWNUM 에 대한 조건검사 불가. ( 내부에서 행을 가져오고 검사할 때 ROWNUM 1이 붙음. WHERE 조건이 ROWNUM > 3이니 탈락 할 수 밖에...)
+-- 서브 쿼리로 추가함으로 해결
+SELECT "평균급여순", "부서코드", "평균급여"
+FROM
+(
+    SELECT ROWNUM AS "평균급여순", "부서코드", "평균급여"
+    FROM (  SELECT  NVL(DEPT_CODE, '부서없음') AS "부서코드",
+                TRUNC(AVG(NVL(SALARY, 0))) AS "평균급여"
+        FROM EMPLOYEE
+        GROUP BY DEPT_CODE
+        ORDER BY "평균급여" DESC
+      )
+)
+WHERE "평균급여순" > 3
+;
+
+-- WITH
+WITH ABC AS
+(
+    SELECT  NVL(DEPT_CODE, '부서없음') AS "부서코드",
+            TRUNC(AVG(NVL(SALARY, 0))) AS "평균급여"
+    FROM EMPLOYEE
+    GROUP BY DEPT_CODE
+    ORDER BY "평균급여" DESC
+)
+SELECT ROWNUM, "부서코드", "평균급여"
+FROM ABC
+WHERE ROWNUM <= 3
+;
+
+/*
+    <RANK 함수>
+    [표현법]
+        RANK() OVER(정렬 기준) / DENSE_RANK() OVER(정렬 기준)
+        
+        RANK() OVER(정렬 기준)         : 동일한 순위 이후의 등수를 동일한 인원수만큼 건너뛰고 순위를 계산한다.
+                                         (EX. 공동 1위가 2명이면 다음 순위는 3위)
+        DENSE_RANK() OVER(정렬 기준)   : 동일한 순위 이후의 등수를 무조건 1씩 증가한다.
+                                         (EX. 공동 1위가 2명이면 다음 순위는 2위)
+*/
+
+-- 사원별 급여가 높은 순서대로 순위를 매겨서 조회
+SELECT EMP_NAME,
+        SALARY,
+        RANK() OVER (ORDER BY SALARY DESC) AS RANK,
+        DENSE_RANK() OVER (ORDER BY SALARY DESC) AS DENSE_RANK
+FROM EMPLOYEE
+ORDER BY SALARY DESC
+;
+
